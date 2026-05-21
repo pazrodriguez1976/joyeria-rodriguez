@@ -1,8 +1,7 @@
-FROM wordpress:php8.2-apache
-RUN rm -f /etc/apache2/mods-available/mpm_event.load \
-    && rm -f /etc/apache2/mods-available/mpm_worker.load \
-    && rm -f /etc/apache2/mods-enabled/mpm_event.load \
-    && rm -f /etc/apache2/mods-enabled/mpm_worker.load
+FROM wordpress:6.5-apache
 RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
+RUN rm -f /etc/apache2/mods-enabled/mpm_*.load \
+    && rm -f /etc/apache2/mods-enabled/mpm_*.conf \
+    && a2enmod mpm_prefork
 COPY ./wp-content /var/www/html/wp-content
 RUN chown -R www-data:www-data /var/www/html/wp-content
