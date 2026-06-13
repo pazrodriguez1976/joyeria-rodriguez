@@ -1,0 +1,38 @@
+name: CI Joyeria Rodriguez
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Crear archivo .env temporal
+        run: |
+          echo "DB_NAME=test_db" >> .env
+          echo "DB_USER=test_user" >> .env
+          echo "DB_PASSWORD=test_pass" >> .env
+
+      - name: Levantar servicios con Docker Compose
+        run: docker-compose up -d
+
+      - name: Esperar a que la base de datos esté lista
+        run: |
+          echo "Esperando a MySQL..."
+          sleep 20 # Tiempo prudente para que el contenedor inicie
+
+      - name: Verificar sintaxis PHP en wp-content
+        # Esto busca errores en todos tus archivos .php (temas/plugins)
+        run: |
+          docker-compose exec -T wordpress find /var/www/html/wp-content -name "*.php" -exec php -l {} \;
+
+      - name: Verificar que WordPress responda
+        # Intenta obtener una respuesta del servidor web
+        run: |
+          curl --fail http://localhost:8000 || exit 1
