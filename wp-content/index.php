@@ -1,2 +1,2 @@
-<?php
+<?phv p
 // Silence is golden.
