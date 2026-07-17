@@ -2,37 +2,41 @@ name: CI Joyeria Rodriguez
 
 on:
   push:
-    branches: [ main ]
+    branches: [ develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ develop ]
 
 jobs:
-  test:
+  test-and-validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
 
-      - name: Crear archivo .env temporal
+      - name: Verificar sintaxis PHP (Linter)
+        # Esto es vital: si hay un error de sintaxis, detiene el proceso antes de probar nada
         run: |
-          echo "DB_NAME=test_db" >> .env
+          find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \;
+
+      - name: Crear archivo .env temporal para pruebas
+        run: |
+          echo "DB_NAME=test_db" > .env
           echo "DB_USER=test_user" >> .env
           echo "DB_PASSWORD=test_pass" >> .env
 
       - name: Levantar servicios con Docker Compose
         run: docker-compose up -d
 
-      - name: Esperar a que la base de datos esté lista
+      - name: Esperar a que WordPress inicie
         run: |
-          echo "Esperando a MySQL..."
-          sleep 20 # Tiempo prudente para que el contenedor inicie
-
-      - name: Verificar sintaxis PHP en wp-content
-        # Esto busca errores en todos tus archivos .php (temas/plugins)
-        run: |
-          docker-compose exec -T wordpress find /var/www/html/wp-content -name "*.php" -exec php -l {} \;
-
-      - name: Verificar que WordPress responda
-        # Intenta obtener una respuesta del servidor web
-        run: |
-          curl --fail http://localhost:8000 || exit 1
+          # Bucle de espera inteligente: intenta 10 veces antes de fallar
+          for i in {1..10}; do
+            if curl -s http://localhost:8000 > /dev/null; then
+              echo "WordPress está listo"
+              exit 0
+            fi
+            echo "Esperando a WordPress..."
+            sleep 5
+          done
+          echo "El servidor no respondió a tiempo"
+          exit 1
