@@ -13,30 +13,12 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v4
 
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2' # O la versión que uses en tu servidor
+
       - name: Verificar sintaxis PHP (Linter)
-        # Esto es vital: si hay un error de sintaxis, detiene el proceso antes de probar nada
         run: |
+          # Esto analiza todos tus archivos PHP en busca de errores fatales de sintaxis
           find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \;
-
-      - name: Crear archivo .env temporal para pruebas
-        run: |
-          echo "DB_NAME=test_db" > .env
-          echo "DB_USER=test_user" >> .env
-          echo "DB_PASSWORD=test_pass" >> .env
-
-      - name: Levantar servicios con Docker Compose
-        run: docker-compose up -d
-
-      - name: Esperar a que WordPress inicie
-        run: |
-          # Bucle de espera inteligente: intenta 10 veces antes de fallar
-          for i in {1..10}; do
-            if curl -s http://localhost:8000 > /dev/null; then
-              echo "WordPress está listo"
-              exit 0
-            fi
-            echo "Esperando a WordPress..."
-            sleep 5
-          done
-          echo "El servidor no respondió a tiempo"
-          exit 1
